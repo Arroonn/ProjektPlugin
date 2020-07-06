@@ -1,0 +1,8 @@
+[general]
+name=QualityAssuranceChecks
+email=norakoenig@posteo.de
+author=Nora
+qgisMinimumVersion=3.0
+description=CRS check, Spatial Index check
+about=The plugin comprises ...
+version=0.1
