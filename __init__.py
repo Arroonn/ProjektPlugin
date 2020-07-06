@@ -1,4 +1,4 @@
-from ProjektPlugin.werkzeug import *
+from .werkzeug import CheckCRS
 
 def classFactory (iface):
     return CheckCRS(iface)
