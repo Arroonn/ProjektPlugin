@@ -2,12 +2,14 @@
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-#Wir holen uns alles aus werkzeug_funtionalitaet.
+#Wir holen uns alles aus werkzeug_dialog.
 from .werkzeug_dialog import WerkzeugDialog
 from qgis.core import Qgis, QgsProject, QgsMessageLog
 #Wir legen eine Klasse namens CheckCRS an.
 #Hier werden die Methoden (init, initGui, etc.) der Klasse definiert.
 ##iface soll eine Eigenschaft des Plugins werden.
+import os
+
 class CheckCRS:
 
     def __init__(self, iface):
@@ -19,6 +21,15 @@ class CheckCRS:
         #Ziel: Bei Klick auf den Starten-Button, soll die Methode maskeAufrufen
         #aufgerufen werden und die Gui soll angezeigt werden.
         self.startButton.triggered.connect(self.run)
+        
+        #2 Optionen zur Layerauswahl
+        #plugin directory pfad ermitteln
+        pfad = r"C:\Users\nkn\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\ProjektPlugin\icons"
+        self.plugin_dir = os.path.dirname(pfad)
+        #ansprechen des Icons mein_icon.svg im Plugin directory
+        self.action1 = QAction(QIcon(os.path.join(self.plugin_dir,"noun_internet_checkAll.svg")), u"CheckAll", self.iface.mainWindow())
+        self.action1 = QAction(QIcon(os.path.join(self.plugin_dir,"noun_savetheworld_checkActive.svg")), u"CheckActive", self.iface.mainWindow())
+
 
     def unload(self):
         self.iface.removePluginMenu('CheckCRS', self.startButton)
@@ -42,6 +53,7 @@ class CheckCRS:
         self.gui = WerkzeugDialog(self.iface.mainWindow())
         self.gui.listWidget.addItems(bad_crs_layer)
         self.gui.show()
+        
 
 
 
