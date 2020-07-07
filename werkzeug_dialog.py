@@ -32,17 +32,3 @@ class WerkzeugDialog(BASE, WIDGET):
     def closePlugin(self):
         self.close()
     
-    #Find all layers not using the project CRS
-    # def NonMatchingCRS(self):
-        # layers = QgsProject.instance().mapLayers()
-        # warnings = 'The following layers do not match with the project:'
-        
-        # for layer in layers.values():
-            # if layer.crs() != QgsProject.instance().crs():
-                # warnings += '\n' + layer.name()
-                
-        # QMessageBox.warning(None, 'Do layers match the project\'s CRS?', warnings)
-        # print(warnings) 
-
-
-
