@@ -1,38 +1,40 @@
-#Wir importieren verschiedene Funktionen der Bibliothek PyQt5.
+#Wir importieren verschiedene Funktionen der Bibliothek PyQt5 sowie das os Modul.
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+import os
+from qgis.utils import iface
+
+from qgis.core import Qgis, QgsProject, QgsMessageLog
+
 #Wir holen uns alles aus werkzeug_dialog.
 from .werkzeug_dialog import WerkzeugDialog
-from qgis.core import Qgis, QgsProject, QgsMessageLog
-#Wir legen eine Klasse namens CheckCRS an.
-#Hier werden die Methoden (init, initGui, etc.) der Klasse definiert.
-##iface soll eine Eigenschaft des Plugins werden.
-import os
 
+#Wir legen eine Klasse namens CheckCRS an und definieren ihre Methoden (init, initGui, etc.).
+##iface soll eine Eigenschaft des Plugins werden.
 class CheckCRS:
 
     def __init__(self, iface):
         self.iface = iface
 
     def initGui(self):
-        self.startButton = QAction('Starten', self.iface.mainWindow())
-        self.iface.addPluginToMenu('CheckCRS', self.startButton)
-        #Ziel: Bei Klick auf den Starten-Button, soll die Methode maskeAufrufen
-        #aufgerufen werden und die Gui soll angezeigt werden.
-        self.startButton.triggered.connect(self.run)
+        #Erzeugt Buttons im Plugin-Menu
+        self.startButtonAll = QAction('Check CRS of all layers', self.iface.mainWindow())
+        self.startButtonActive = QAction('Check CRS of active layers', self.iface.mainWindow())
+        self.iface.addPluginToMenu('QuickQA', self.startButtonAll)
+        self.iface.addPluginToMenu('QuickQA', self.startButtonActive)
+        #Ziel: Bei Klick auf die 'Check CRS of...'-Buttons soll die jeweilige run-Methode aufgerufen werden.
+        self.startButtonAll.triggered.connect(self.runAll)
+        self.startButtonActive.triggered.connect(self.runActive)
         
-        #2 Optionen zur Layerauswahl
-        #plugin directory pfad ermitteln
-        #pfad = r"C:\Users\nkn\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\ProjektPlugin\icons"
+        #ToolbarIcon mit zwei Optionen zur Layerauswahl
         self.plugin_dir = os.path.dirname(__file__)
-        #ansprechen des Icons mein_icon.svg im Plugin directory
-        self.action1 = QAction(QIcon(os.path.join(self.plugin_dir,"icons","noun_internet_checkAll.svg")), u"CheckAll", self.iface.mainWindow())
-        self.action2 = QAction(QIcon(os.path.join(self.plugin_dir,"icons","noun_savetheworld_checkActive.svg")), u"CheckActive", self.iface.mainWindow())
+        #ansprechen der Icons im Plugin directory
+        self.action1 = QAction(QIcon(os.path.join(self.plugin_dir,"icons","CheckAll.svg")), u"Check CRS of all layers", self.iface.mainWindow())
+        self.action2 = QAction(QIcon(os.path.join(self.plugin_dir,"icons","CheckActive.svg")), u"Check CRS of active layers", self.iface.mainWindow())
         self.popupMenu = QMenu( self.iface.mainWindow() )
         self.popupMenu.addAction( self.action1 )
         self.popupMenu.addAction( self.action2 )
-
 
         self.toolButton = QToolButton()
 
@@ -42,15 +44,15 @@ class CheckCRS:
 
         self.iface.addToolBarWidget( self.toolButton )
 
-
     def unload(self):
-        self.iface.removePluginMenu('CheckCRS', self.startButton)
+        self.iface.removePluginMenu('QuickQA', self.startButtonAll)
+        self.iface.removePluginMenu('QuickQA', self.startButtonActive)
         self.popupMenu.removeAction(self.action1)
         self.popupMenu.removeAction(self.action2)
         del self.popupMenu
         del self.toolButton
 
-    def run(self):
+    def runAll(self):
         layers = QgsProject.instance().mapLayers()
         project_crs = QgsProject.instance().crs().authid()
         bad_crs_layer=[]
@@ -62,7 +64,7 @@ class CheckCRS:
             if layer.crs().authid()!=project_crs:
                 bad_crs_layer.append(layer.name())
                 if layertree_root.findLayer(layer.id()).isVisible():
-                    QgsMessageLog.logMessage("Layer "+layer.name()+" ist sichtbar", 'CheckCRS', level=Qgis.Info)
+                    QgsMessageLog.logMessage("Layer "+layer.name()+" ist sichtbar", 'QuickQA', level=Qgis.Info)
 
         #print(bad_crs_layer)
         
@@ -70,6 +72,23 @@ class CheckCRS:
         self.gui.listWidget.addItems(bad_crs_layer)
         self.gui.show()
         
+    def runActive(self):
+        layers = QgsProject.instance().mapLayers()
+        project_crs = QgsProject.instance().crs().authid()
+        bad_crs_layer=[]
+        
+        layertree_root=QgsProject.instance().layerTreeRoot()
+
+        #for layer_id, layer in layers.items():
+        for layer in iface.mapCanvas().layers():
+            if layer.crs().authid()!=project_crs:
+                bad_crs_layer.append(layer.name())
+
+        #print(bad_crs_layer)
+        
+        self.gui = WerkzeugDialog(self.iface.mainWindow())
+        self.gui.listWidget.addItems(bad_crs_layer)
+        self.gui.show()
 
 
 

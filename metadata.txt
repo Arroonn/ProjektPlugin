@@ -1,8 +1,8 @@
 [general]
-name=QualityAssuranceChecks
+name=QuickQA
 email=norakoenig@posteo.de
 author=Nora
 qgisMinimumVersion=3.0
 description=CRS check, Spatial Index check
-about=The plugin comprises ...
+about=The plugin supports quality assurance by checking the layer's CRS against the projects CRS as well as detecting missing spatial indexes.
 version=0.1
