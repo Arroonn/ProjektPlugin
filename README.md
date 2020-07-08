@@ -1,2 +1,2 @@
-# ProjektPlugin
-Das ist die erste Version meines Plugins. Das Plugin erscheint unter den QGIS Plugins und man kann den Starten-Button klicken, aber die Dummymaske erscheint nicht. 
+# QuickQA
+Dieses QGIS Plugin wird gebaut, um Usern eine einfache und effektive Möglichkeit zu bieten, die Koordinatensysteme geladener Layer mit dem des Projekts abzugleichen sowie Layer ohne räumlichen Index anzuzeigen. Beides nimmt, insb. beim Arbeiten in umfangreichen Projekten, zusätzliche Rechenkapazitäten in Anspruch und kann somit den Workflow verlangsamen.
