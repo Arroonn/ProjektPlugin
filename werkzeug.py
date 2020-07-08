@@ -19,13 +19,12 @@ class CheckCRS:
 
     def initGui(self):
         #Erzeugt Buttons im Plugin-Menu
-        self.startButtonAll = QAction('Check CRS of all layers', self.iface.mainWindow())
-        self.startButtonActive = QAction('Check CRS of active layers', self.iface.mainWindow())
-        self.iface.addPluginToMenu('QuickQA', self.startButtonAll)
-        self.iface.addPluginToMenu('QuickQA', self.startButtonActive)
+        # self.startButtonAll = QAction('Check CRS of all layers', self.iface.mainWindow())
+        # self.startButtonActive = QAction('Check CRS of active layers', self.iface.mainWindow())
+
         #Ziel: Bei Klick auf die 'Check CRS of...'-Buttons soll die jeweilige run-Methode aufgerufen werden.
-        self.startButtonAll.triggered.connect(self.runAll)
-        self.startButtonActive.triggered.connect(self.runActive)
+        # self.startButtonAll.triggered.connect(self.runAll)
+        # self.startButtonActive.triggered.connect(self.runActive)
         
         #ToolbarIcon mit zwei Optionen zur Layerauswahl
         self.plugin_dir = os.path.dirname(__file__)
@@ -37,6 +36,12 @@ class CheckCRS:
         self.action1.triggered.connect(self.runAll)
         self.action2.triggered.connect(self.runActive)
         self.action3.triggered.connect(self.runSelected)
+        
+        #Plugin Menu
+        self.iface.addPluginToMenu('QuickQA', self.action1)
+        self.iface.addPluginToMenu('QuickQA', self.action2)
+        self.iface.addPluginToMenu('QuickQA', self.action3)
+        
         self.popupMenu = QMenu( self.iface.mainWindow() )
         self.popupMenu.addAction( self.action1 )
         self.popupMenu.addAction( self.action2 )
@@ -61,8 +66,10 @@ class CheckCRS:
         
 
     def unload(self):
-        self.iface.removePluginMenu('QuickQA', self.startButtonAll)
-        self.iface.removePluginMenu('QuickQA', self.startButtonActive)
+        self.iface.removePluginMenu('QuickQA', self.action1)
+        self.iface.removePluginMenu('QuickQA', self.action2)
+        self.iface.removePluginMenu('QuickQA', self.action3)
+        
         self.popupMenu.removeAction(self.action1)
         self.popupMenu.removeAction(self.action2)
         self.popupMenu.removeAction(self.action3)
