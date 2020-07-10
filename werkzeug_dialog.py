@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 from PyQt5 import uic
 import os
 from qgis.core import *
-#import processing
+import processing
 
 #Vorbereitung: Wir kombinieren Pfad zum Ordner und die Ui-Datei zu einem Pfad.
 pluginPath = os.path.dirname(__file__)
@@ -25,10 +25,16 @@ class WerkzeugDialog(BASE, WIDGET):
         #und mit Funktionen belegt werden.
         #self = meineGui :)
         
+        self.btn_reproject.clicked.connect(self.reproject)
+        
         #Buttons mit Methoden verknuepfen
         self.btn_cancel.clicked.connect(self.closePlugin)
         #self.btn_run.clicked.connect(self.NonMatchingCRS)
     
     def closePlugin(self):
         self.close()
-    
+        
+    def reproject(self):
+        input_params = {}
+        processing.execAlgorithmDialog('native:reprojectlayer', input_params)
+
