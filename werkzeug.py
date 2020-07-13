@@ -179,7 +179,7 @@ class QuickQA:
 #                print(x.name(), layer.getFeature(1)['has_spatial_index'])   #Ergebnis der Spalte 'has_spatial_index' ausgeben (layer hat immer nur ein feature
 
     def showResult(self,result_layer, mode):
-        if mode = CRS:
+        if mode == "CRS":
             if len(result_layer)<1:
                 self.showMessage('Alle betreffenden Layer stimmen mit dem Koordinatensystem des Projekts überein.', Qgis.Success)
                 #self.logMessage('Alle betreffenden Layer stimmen mit dem Koordinatensystem des Projekts überein.')
@@ -189,7 +189,7 @@ class QuickQA:
                 self.list_results.addItems(result_layer)
                 self.gui.show()
                 
-        elif mode = MissingSIndex:
+        elif mode == "MissingSIndex":
             if len(result_layer)<1:
                 self.showMessage('Alle betreffenden Layer haben einen Spatial Index.', Qgis.Success)
                 #self.logMessage('Alle betreffenden Layer haben einen Spatial Index.')
