@@ -196,6 +196,7 @@ class QuickQA:
                 #self.logMessage('Alle betreffenden Layer haben einen Spatial Index.')
                 #sichtbar im Protokoll widget im Reiter QuickQA
             else:
+                self.gui.label_2.setText("Spatial Index Ergebnis")
                 self.list_results.clear()
                 self.list_results.addItems(result_layer)
                 self.gui.show()
