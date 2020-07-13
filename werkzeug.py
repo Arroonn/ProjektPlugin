@@ -147,7 +147,7 @@ class QuickQA:
                     erzeugt=layer.dataProvider().createSpatialIndex()
                     print(erzeugt)
                 elif layer.hasSpatialIndex() == QgsFeatureSource.SpatialIndexUnknown:
-                    print("unknown")
+                    missingSIndex.append(layer.name())
                     erzeugt=layer.dataProvider().createSpatialIndex()
                     if erzeugt==True:
                         myfile= unicode( layer.dataProvider().dataSourceUri() ) 
