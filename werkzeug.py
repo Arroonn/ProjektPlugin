@@ -5,7 +5,9 @@ from PyQt5.QtWidgets import *
 import os
 from qgis.utils import iface
 
-from qgis.core import Qgis, QgsProject, QgsMessageLog
+from qgis.core import Qgis, QgsProject, QgsMapLayer, QgsFeatureSource, QgsMessageLog
+
+#speed by indra anis from the Noun Project
 
 #Wir holen uns alles aus werkzeug_dialog.
 from .werkzeug_dialog import WerkzeugDialog
@@ -43,7 +45,7 @@ class QuickQA:
         self.popupMenu.addAction( self.action1 )
         self.popupMenu.addAction( self.action2 )
         self.popupMenu.addAction( self.action3 )
-        #self.popupMenu.addAction( self.action4 )
+        self.popupMenu.addAction( self.action4 )
 
         #QToolbutton class provides a quick-access button to commands; used inside QToolBar.
         self.toolButton = QToolButton()
@@ -137,7 +139,28 @@ class QuickQA:
         self.showResult(bad_crs_layer)
         
     def runSIndex(self):
-        pass
+        layers = QgsProject.instance().mapLayers()
+
+        for layer_id, layer in layers.items():
+            #print(layer.name())
+            if layer.type() == QgsMapLayer.VectorLayer:
+                if layer.hasSpatialIndex() == QgsFeatureSource.SpatialIndexNotPresent:
+                    print("not present")
+                    erzeugt=layer.dataProvider().createSpatialIndex()
+                    print(erzeugt)
+                elif layer.hasSpatialIndex() == QgsFeatureSource.SpatialIndexUnknown:
+                    print("unknown")
+                    erzeugt=layer.dataProvider().createSpatialIndex()
+                    if erzeugt==True:
+                        myfile= unicode( layer.dataProvider().dataSourceUri() ) 
+                        (myDirectory,nameFile) = os.path.split(myfile)
+                        
+                        print(nameFile.split('|')[0])
+                        print("index erzeugt oder aktualisiert--\n--fuer Layer "+layer.name())
+                elif layer.hasSpatialIndex() == QgsFeatureSource.SpatialIndexPresent:
+                    print ("present")
+                else:
+                    print ("something else")
         
     def showResult(self,result_layer):
             
