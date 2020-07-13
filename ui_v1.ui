@@ -64,7 +64,7 @@
 coordinate reference system.</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="btn_reproject">
+  <widget class="QPushButton" name="btn_sanitize" >
    <property name="geometry">
     <rect>
      <x>50</x>
@@ -74,7 +74,7 @@ coordinate reference system.</string>
     </rect>
    </property>
    <property name="text">
-    <string>Reproject Layer</string>
+    <string>Create Spatial Index</string>
    </property>
   </widget>
  </widget>

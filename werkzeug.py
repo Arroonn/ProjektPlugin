@@ -8,7 +8,7 @@ import processing
 from qgis.core import Qgis, QgsProject, QgsMapLayer, QgsFeatureSource, QgsMessageLog
 
 from qgis.core import Qgis, QgsProject, QgsMessageLog
-
+from qgis.utils import spatialite_connect
 #Wir holen uns alles aus werkzeug_dialog.
 from .werkzeug_dialog import WerkzeugDialog
 
@@ -62,6 +62,7 @@ class QuickQA:
         
         self.gui = WerkzeugDialog(self.iface.mainWindow())
         self.list_results = self.gui.list_results
+        self.gui.btn_sanitize.clicked.connect(self.sanitize)
         
 
     def unload(self):
@@ -73,13 +74,14 @@ class QuickQA:
         self.popupMenu.removeAction(self.action1)
         self.popupMenu.removeAction(self.action2)
         self.popupMenu.removeAction(self.action3)
-        self.popupMenu.removeAction(self.action4)
+        self.myToolBar.removeAction(self.action4)
         self.iface.removeToolBarIcon(self.toolbar_object)
         del self.popupMenu
-        self.popupMeni = None
+        self.popupMenu = None
         del self.toolButton
         self.toolButton = None
         del self.myToolBar
+        self.myToolBar = None
 
     def runAll(self):
         layers = QgsProject.instance().mapLayers()
@@ -137,8 +139,7 @@ class QuickQA:
         
     def runSIndex(self):
         layers = QgsProject.instance().mapLayers()
-        missingSIndex = []
-
+        self.missingSIndex = []
         for layer_id, layer in layers.items():
             #print(layer.name())
             if layer.type() == QgsMapLayer.VectorLayer:
@@ -148,19 +149,68 @@ class QuickQA:
                     print(erzeugt)
                 elif layer.hasSpatialIndex() == QgsFeatureSource.SpatialIndexUnknown:
                     #print("unknown")
-                    missingSIndex.append(layer.name())
-                    erzeugt=layer.dataProvider().createSpatialIndex()
-                    if erzeugt==True:
-                        myfile= unicode( layer.dataProvider().dataSourceUri() ) 
-                        (myDirectory,nameFile) = os.path.split(myfile)
+                    
+                    #ueberpruefung fuer gpkg und shapefiles:
+                    
+                    myfile= unicode( layer.dataProvider().dataSourceUri() ) #pfad abgreifen
+                    (myDirectory,nameFile) = os.path.split(myfile) #pfadordner und dateiname trennen
+                    #print(myfile)
+                    layersource_absolute_path=myfile.split('|')[0] #absoluter pfad ohne layernamen
+                    #Test fuer geopackages
+                    if ".gpkg" in myfile:
+                        con = spatialite_connect(layersource_absolute_path)
+                        tablename=nameFile.split('|')[1]
+                        print(tablename)
+                        #Now, you can create a new point layer in your database in this way (see the docs):
 
-                        print(nameFile.split('|')[0])
-                        print("index erzeugt oder aktualisiert--\n--fuer Layer "+layer.name())
+                        cur = con.cursor()
+                        # Run next line if your DB was just created, it may take a while...
+                        gpkg_tablename=tablename.split('=')[1] #tabellennamen isolieren
+                        sql_string="SELECT EXISTS(SELECT name FROM sqlite_master WHERE type='table' and name like 'rtree_"+gpkg_tablename+"_%')" 
+                        #sql_string="select ST_AsText(geometry) from "+gpkg_tablename+";" 
+                        
+                        print(sql_string)
+
+                        cur.execute(sql_string) #sql ausfuehrenn
+                        result = cur.fetchone() #erstes ergebnis holen
+                        #result = cur.fetchall() #alle ergebnisse holen
+                        print(result)
+                        if result[0]==1:
+                            print(layer.name()+" hat einen spatial index")
+                        else:
+                            print(layer.name()+" hat keinen spatial index")
+                            self.missingSIndex.append(layer)
+                            #layer.dataProvider().createSpatialIndex()
+
+                        cur.close()
+                        con.close()
+                    #Test fuer Shapefiles    
+                    elif ".shp" in myfile:
+                        (myDirectory,nameFile) = os.path.split(myfile)
+                        layername_w_o_extension=os.path.splitext(nameFile.split('|')[0])[0]  #layername ohne extension
+                        qix_path=os.path.join(myDirectory,layername_w_o_extension+'.qix') #pfad zur qix Datei bauen ...imselben ordner wie die shapedatei
+                        if os.path.isfile ( qix_path):   #ueberpruefen ob die qix datei existiert
+                            print("Shapefile "+layer.name()+" hat eine qix-Datei.\n"+
+                            "Die liegt hier: \n"
+                            +qix_path)
+                        else:
+                            self.missingSIndex.append(layer)
+                        
+                    
+                    
+                    # erzeugt=layer.dataProvider().createSpatialIndex()
+                    # print(erzeugt)
+                    # if erzeugt==True:
+                        # myfile= unicode( layer.dataProvider().dataSourceUri() ) 
+                        # (myDirectory,nameFile) = os.path.split(myfile)
+
+                        # print(nameFile.split('|')[0])
+                        # print("index erzeugt oder aktualisiert--\n--fuer Layer "+layer.name())
                 elif layer.hasSpatialIndex() == QgsFeatureSource.SpatialIndexPresent:
                     print ("present")
                 else:
                     print ("something else")
-        self.showResult(missingSIndex, 'MissingSIndex')
+        self.showResult(self.missingSIndex, 'MissingSIndex')
         
 #        layers = QgsProject.instance().mapLayers() # ist ein Dictionary mit {'layerkennung' : layer}
 #
@@ -180,6 +230,8 @@ class QuickQA:
 #                print(x.name(), layer.getFeature(1)['has_spatial_index'])   #Ergebnis der Spalte 'has_spatial_index' ausgeben (layer hat immer nur ein feature
 
     def showResult(self,result_layer, mode):
+        sanitize_button=self.gui.btn_sanitize
+        sanitize_button.hide() #beim thema crs den sanitize button ausblenden
         if mode == 'CRS':
             if len(result_layer)<1:
                 self.showMessage('Alle betreffenden Layer stimmen mit dem Koordinatensystem des Projekts überein.', Qgis.Success)
@@ -201,10 +253,22 @@ class QuickQA:
                 self.gui.label.setText("The layers listed don't have a spatial index:")
                 self.gui.label_2.setText("Spatial Index Ergebnis")
                 self.list_results.clear()
-                self.list_results.addItems(result_layer)
+                result_layer_names =[] #leeres array fuer die layernamen weil hier wirklich die layer als objekte in der liste stehen
+                for layer in result_layer:  #for loop
+                    result_layer_names.append(layer.name()) # fuer jeden layer seinen namen hinzufuegen fuer die liste im dialog
+                self.list_results.addItems(result_layer_names)
+                
+                sanitize_button.show()
+                
                 self.gui.show()
-
-
+    
+    #sanitize Funktion ausgelagert. wuerde ich nur fuer die Indizes anbieten. Layer reprojezzieren per batch ist kniffelig
+    def sanitize(self,layer):
+        for layer in self.missingSIndex:
+            layer.dataProvider().createSpatialIndex()
+        self.showMessage('Spatial Index erzeugt', Qgis.Success)
+        self.gui.close()
+            
                 
     def showMessage(self, message, level=Qgis.Info, target=None, shortmessage=None):
         """

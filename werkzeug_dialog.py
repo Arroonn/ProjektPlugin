@@ -25,7 +25,7 @@ class WerkzeugDialog(BASE, WIDGET):
         #und mit Funktionen belegt werden.
         #self = meineGui :)
         
-        self.btn_reproject.clicked.connect(self.reproject)
+        #self.btn_sanitize.clicked.connect(self.reproject)
         
         #Buttons mit Methoden verknuepfen
         self.btn_cancel.clicked.connect(self.closePlugin)
