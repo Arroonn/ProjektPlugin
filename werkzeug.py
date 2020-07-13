@@ -186,8 +186,8 @@ class QuickQA:
                 #self.logMessage('Alle betreffenden Layer stimmen mit dem Koordinatensystem des Projekts überein.')
                 #sichtbar im Protokoll widget im Reiter QuickQA
             else:
-                self.gui.label.setText("The layers listed have a different coordinate reference system than the project:")
-                self.gui.label_2.setText("Reproject or export the layer using the project's coordinate reference system.")
+                self.gui.label.setText("The layers listed have a different coordinate\n reference system than the project:")
+                self.gui.label_2.setText("Reproject or export the layer using the project's\n coordinate reference system.")
                 self.list_results.clear()
                 self.list_results.addItems(result_layer)
                 self.gui.show()
