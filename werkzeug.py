@@ -98,7 +98,7 @@ class QuickQA:
         # self.gui = WerkzeugDialog(self.iface.mainWindow())
         # self.gui.list_results.addItems(bad_crs_layer)
         # self.gui.show()
-        self.showResult(bad_crs_layer)
+        self.showResult(bad_crs_layer, 'CRS')
         
     def runActive(self):
         layers = QgsProject.instance().mapLayers()
@@ -118,7 +118,7 @@ class QuickQA:
         #self.gui = WerkzeugDialog(self.iface.mainWindow())
         # self.gui.list_results.addItems(bad_crs_layer)
         # self.gui.show()
-        self.showResult(bad_crs_layer)
+        self.showResult(bad_crs_layer, 'CRS')
         
     def runSelected(self):
         layers = self.iface.layerTreeView().selectedLayers()
@@ -196,6 +196,7 @@ class QuickQA:
                 #self.logMessage('Alle betreffenden Layer haben einen Spatial Index.')
                 #sichtbar im Protokoll widget im Reiter QuickQA
             else:
+                self.gui.label.setText("The layers listed don't have a spatial index:")
                 self.gui.label_2.setText("Spatial Index Ergebnis")
                 self.list_results.clear()
                 self.list_results.addItems(result_layer)
