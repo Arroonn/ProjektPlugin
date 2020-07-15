@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Result</string>
+   <string>QuickQA Result</string>
   </property>
   <widget class="QPushButton" name="btn_cancel">
    <property name="geometry">
@@ -36,7 +36,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>The layers listed have a different coordinate 
+    <string>The layer(s) listed have a different coordinate 
  reference system than the project:</string>
    </property>
   </widget>
@@ -60,16 +60,16 @@
     </rect>
    </property>
    <property name="text">
-    <string>Reproject or export the layer using the project's 
-coordinate reference system.</string>
+    <string>Use the 'Reproject layer' tool or export them 
+using the project's coordinate reference system.</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="btn_sanitize" >
+  <widget class="QPushButton" name="btn_sanitize">
    <property name="geometry">
     <rect>
      <x>50</x>
      <y>470</y>
-     <width>111</width>
+     <width>141</width>
      <height>28</height>
     </rect>
    </property>

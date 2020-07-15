@@ -3,64 +3,66 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import os
-from qgis.utils import iface
+from qgis.utils import iface, showPluginHelp
 import processing
 from qgis.core import Qgis, QgsProject, QgsMapLayer, QgsFeatureSource, QgsMessageLog
 
-from qgis.core import Qgis, QgsProject, QgsMessageLog
 from qgis.utils import spatialite_connect
-#Wir holen uns alles aus werkzeug_dialog.
-from .werkzeug_dialog import WerkzeugDialog
+from .werkzeug_dialog import WerkzeugDialog #Wir holen uns die Klasse WerkzeugDialog aus der werkzeug_dialog.py.
 
-#Wir legen eine Klasse namens QuickQA an und definieren ihre Methoden.
-#Diese Klasse ist das funktionale Kernstück des Plugins.
-class QuickQA:
+class QuickQA: #Diese Klasse ist das funktionale Kernstück des Plugins; enthält Methoden.
 
-    def __init__(self, iface):
-        self.iface = iface #Das iface soll eine Eigenschaft des Plugins werden
+    def __init__(self, iface):  #Das iface soll eine Eigenschaft des Plugins werden.
+        self.iface = iface
 
-    def initGui(self):
-        #Dynamischer Pfad zum Plugin-Directory, in dem die werkzeug.py liegt
-        self.plugin_dir = os.path.dirname(__file__)
-        #Eine Action wird erstellt, die sich die Icons aus dem Plugin Directory holt
+    def initGui(self):  # Method to set up GUI, i.e. buttons and their actions, toolbar, dropdown, buttons in Pluginmenu, etc. 
+        
+        self.plugin_dir = os.path.dirname(__file__)  #Dynamischer Pfad zum Plugin-Directory, in dem die werkzeug.py liegt.
+        
+        #Actions werden erstellt, die sich die Icons aus dem Plugin Directory holen.
         self.action1 = QAction(QIcon(os.path.join(self.plugin_dir,"icons","CheckAll.svg")), u"Check CRS of all layers", self.iface.mainWindow())
         self.action2 = QAction(QIcon(os.path.join(self.plugin_dir,"icons","CheckActive.svg")), u"Check CRS of active layers", self.iface.mainWindow())
         self.action3 = QAction(QIcon(os.path.join(self.plugin_dir,"icons","CheckSelected.svg")), u"Check CRS of selected layers", self.iface.mainWindow())
         self.action4 = QAction(QIcon(os.path.join(self.plugin_dir,"icons","CheckSpatialIndex.svg")), u"Check Spatial Index", self.iface.mainWindow())
+        self.action5 = QAction(QIcon(os.path.join(self.plugin_dir,"icons","Help.svg")), u"Help...", self.iface.mainWindow())
         
-        #Beim Klick auf die 'Check CRS of...'-Buttons soll die jeweilige run-Methode ausgeführt werden.
+        #Beim Klick auf den jeweiligen Button soll die jeweilige run-Methode ausgeführt werden.
         self.action1.triggered.connect(self.runAll)
         self.action2.triggered.connect(self.runActive)
         self.action3.triggered.connect(self.runSelected)
         self.action4.triggered.connect(self.runSIndex)
+        self.action5.triggered.connect(self.runHelp)
         
-        #Adds actions to the plugins menu
+        #Adds actions to the plugin's menu.
         self.iface.addPluginToMenu('QuickQA', self.action1)
         self.iface.addPluginToMenu('QuickQA', self.action2)
         self.iface.addPluginToMenu('QuickQA', self.action3)
+        self.iface.addPluginToMenu('QuickQA', self.action4)
+        self.iface.addPluginToMenu('QuickQA', self.action5)
+        
         
         #Toolbar Menu
         self.popupMenu = QMenu( self.iface.mainWindow() )
         self.popupMenu.addAction( self.action1 )
         self.popupMenu.addAction( self.action2 )
         self.popupMenu.addAction( self.action3 )
+        
+        self.toolButton = QToolButton() #Generates the main button of the CRS-related buttons in toolbar.
 
-        #QToolbutton class provides a quick-access button to commands; used inside QToolBar.
-        self.toolButton = QToolButton()
-
-        self.toolButton.setMenu( self.popupMenu ) # 
+        self.toolButton.setMenu( self.popupMenu ) # Generates the dropdown at the CRS toolbar button. 
         self.toolButton.setDefaultAction( self.action1 ) #setzt action1 als default action
         self.toolButton.setPopupMode( QToolButton.InstantPopup ) #macht, dass Dropdown aufpoppt beim Klick auf Toolbarbutton
         
-        self.myToolBar = self.iface.mainWindow().findChild( QToolBar, u'QuickQA' )
-        if not self.myToolBar: #if-clause
-            self.myToolBar = self.iface.addToolBar( u'QuickQA' ) #macht die Toolbar anwählbar in der Toolbarliste
+        self.myToolBar = self.iface.mainWindow().findChild( QToolBar, u'QuickQA' ) #Checks if there is a toolbar with that name already.
+        if not self.myToolBar: #If no toolbar is found one gets created. 
+            self.myToolBar = self.iface.addToolBar( u'QuickQA' ) #Makes toolbar selectable in the toolbar panel. 
             self.myToolBar.setObjectName( u'QuickQA' )
         
-        self.toolbar_object = self.myToolBar.addWidget( self.toolButton )
+        self.toolbar_object = self.myToolBar.addWidget( self.toolButton ) # Adds spatial index button to toolbar.
         self.myToolBar.addAction( self.action4 )
+        self.myToolBar.addAction( self.action5 )
         
-        self.gui = WerkzeugDialog(self.iface.mainWindow())
+        self.gui = WerkzeugDialog(self.iface.mainWindow()) # ???
         self.list_results = self.gui.list_results
         self.gui.btn_sanitize.clicked.connect(self.sanitize)
         
@@ -70,11 +72,13 @@ class QuickQA:
         self.iface.removePluginMenu('QuickQA', self.action2)
         self.iface.removePluginMenu('QuickQA', self.action3)
         self.iface.removePluginMenu('QuickQA', self.action4)
+        self.iface.removePluginMenu('QuickQA', self.action5)
         
         self.popupMenu.removeAction(self.action1)
         self.popupMenu.removeAction(self.action2)
         self.popupMenu.removeAction(self.action3)
         self.myToolBar.removeAction(self.action4)
+        self.myToolBar.removeAction(self.action5)
         self.iface.removeToolBarIcon(self.toolbar_object)
         del self.popupMenu
         self.popupMenu = None
@@ -84,15 +88,15 @@ class QuickQA:
         self.myToolBar = None
 
     def runAll(self):
-        layers = QgsProject.instance().mapLayers()
-        project_crs = QgsProject.instance().crs().authid()
-        bad_crs_layer=[]
+        layers = QgsProject.instance().mapLayers()           #Nimmt sich alle Layer aus ToC
+        project_crs = QgsProject.instance().crs().authid()   #Nimmt sich ID des CRS vom Projekt
+        bad_crs_layer=[]                                     #Erzeugt leere Liste für abweichende Layer
         
-        layertree_root=QgsProject.instance().layerTreeRoot()
+        layertree_root=QgsProject.instance().layerTreeRoot() #Returns pointer to the root (invisible) node of the project’s layer tree
 
-        for layer_id, layer in layers.items():
+        for layer_id, layer in layers.items():               #Compares CRS between layers and project
             
-            if layer.crs().authid()!=project_crs:
+            if layer.crs().authid()!=project_crs: 
                 bad_crs_layer.append(layer.name())
                 if layertree_root.findLayer(layer.id()).isVisible():
                     QgsMessageLog.logMessage("Layer "+layer.name()+" ist sichtbar", 'QuickQA', level=Qgis.Info)
@@ -114,8 +118,6 @@ class QuickQA:
             if layertree_root.findLayer(layer.id()).isVisible():
                 if layer.crs().authid()!=project_crs:
                     bad_crs_layer.append(layer.name())
-
-        #print(bad_crs_layer)
         
         #self.gui = WerkzeugDialog(self.iface.mainWindow())
         # self.gui.list_results.addItems(bad_crs_layer)
@@ -134,7 +136,6 @@ class QuickQA:
             if layer.crs().authid()!=project_crs:
                 bad_crs_layer.append(layer.name())
 
-        #print(bad_crs_layer)
         self.showResult(bad_crs_layer, 'CRS')
         
     def runSIndex(self):
@@ -151,7 +152,6 @@ class QuickQA:
                     #print("unknown")
                     
                     #ueberpruefung fuer gpkg und shapefiles:
-                    
                     myfile= unicode( layer.dataProvider().dataSourceUri() ) #pfad abgreifen
                     (myDirectory,nameFile) = os.path.split(myfile) #pfadordner und dateiname trennen
                     #print(myfile)
@@ -171,7 +171,7 @@ class QuickQA:
                         
                         print(sql_string)
 
-                        cur.execute(sql_string) #sql ausfuehrenn
+                        cur.execute(sql_string) #sql ausfuehren
                         result = cur.fetchone() #erstes ergebnis holen
                         #result = cur.fetchall() #alle ergebnisse holen
                         print(result)
@@ -184,7 +184,7 @@ class QuickQA:
 
                         cur.close()
                         con.close()
-                    #Test fuer Shapefiles    
+                    #Test fuer Shapefiles
                     elif ".shp" in myfile:
                         (myDirectory,nameFile) = os.path.split(myfile)
                         layername_w_o_extension=os.path.splitext(nameFile.split('|')[0])[0]  #layername ohne extension
@@ -196,38 +196,13 @@ class QuickQA:
                         else:
                             self.missingSIndex.append(layer)
                         
-                    
-                    
-                    # erzeugt=layer.dataProvider().createSpatialIndex()
-                    # print(erzeugt)
-                    # if erzeugt==True:
-                        # myfile= unicode( layer.dataProvider().dataSourceUri() ) 
-                        # (myDirectory,nameFile) = os.path.split(myfile)
 
-                        # print(nameFile.split('|')[0])
-                        # print("index erzeugt oder aktualisiert--\n--fuer Layer "+layer.name())
                 elif layer.hasSpatialIndex() == QgsFeatureSource.SpatialIndexPresent:
                     print ("present")
                 else:
                     print ("something else")
         self.showResult(self.missingSIndex, 'MissingSIndex')
-        
-#        layers = QgsProject.instance().mapLayers() # ist ein Dictionary mit {'layerkennung' : layer}
-#
-#        for x in layers.values():
-#            if '.gpkg' in x.source():   # wird ausgeführt, nur wenn '.gpkg' im Pfad vorkommt (x.source() gibt Pfad als String wieder)
-#                # Parameter zu processing-Funktionen bekommt man mit: processing:algorithmHelp('algorithmName') in der Python-Konsole
-#                params = {
-#                    'INPUT' : x,
-#                    'SQL' : f"SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE tbl_name like 'rtree_{x.name()}_%') as has_spatial_index",
-#                    'DIALECT':0,
-#                    'OUTPUT' : 'TEMPORARY_OUTPUT'}
-#                hasSP = processing.run('gdal:executesql', params)   # führt Funktion mit den Parametern aus
-#                #print(hasSP['OUTPUT'])
-#
-#                gpg = hasSP['OUTPUT'] + "|layername=SELECT"     # Pfadname des Outputs (String) und LayerName (ist hier immer SELECT aufgrund der SQL-Anweisung)
-#                layer = QgsVectorLayer(gpg, 'outputsql', 'ogr') # als Vektorlayer aufrufen
-#                print(x.name(), layer.getFeature(1)['has_spatial_index'])   #Ergebnis der Spalte 'has_spatial_index' ausgeben (layer hat immer nur ein feature
+
 
     def showResult(self,result_layer, mode):
         sanitize_button=self.gui.btn_sanitize
@@ -238,8 +213,8 @@ class QuickQA:
                 #self.logMessage('Alle betreffenden Layer stimmen mit dem Koordinatensystem des Projekts überein.')
                 #sichtbar im Protokoll widget im Reiter QuickQA
             else:
-                self.gui.label.setText("The layers listed have a different coordinate\n reference system than the project:")
-                self.gui.label_2.setText("Reproject or export the layer using the project's\n coordinate reference system.")
+                self.gui.label.setText("The layer(s) listed have a different coordinate\n reference system than the project:")
+                self.gui.label_2.setText("Reproject or export the layer using the project's\ncoordinate reference system.")
                 self.list_results.clear()
                 self.list_results.addItems(result_layer)
                 self.gui.show()
@@ -250,8 +225,8 @@ class QuickQA:
                 #self.logMessage('Alle betreffenden Layer haben einen Spatial Index.')
                 #sichtbar im Protokoll widget im Reiter QuickQA
             else:
-                self.gui.label.setText("The layers listed don't have a spatial index:")
-                self.gui.label_2.setText("Spatial Index Ergebnis")
+                self.gui.label.setText("The layer(s) listed don't have a spatial index:")
+                self.gui.label_2.setText("Important: Shapefile and Geopackage are \ncurrently the only two data providers supported.")
                 self.list_results.clear()
                 result_layer_names =[] #leeres array fuer die layernamen weil hier wirklich die layer als objekte in der liste stehen
                 for layer in result_layer:  #for loop
@@ -271,6 +246,7 @@ class QuickQA:
             
                 
     def showMessage(self, message, level=Qgis.Info, target=None, shortmessage=None):
+        #enables the displaying of the message bar
         """
         
         :param message:
@@ -288,7 +264,10 @@ class QuickQA:
 
 
     def logMessage(self, message, level=Qgis.Info):
-        QgsMessageLog.logMessage(message, 'QuickQA', level)
-
-
+        #enables the display of messages in log section
+        QgsMessageLog.logMessage(message, 'QuickQA', level) #creates log tab in console
+        
+        
+    def runHelp(self):
+        showPluginHelp(packageName=None, filename='index', section='')
 

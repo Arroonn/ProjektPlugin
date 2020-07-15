@@ -1,0 +1,54 @@
+<! DOCTYPE html> <!-- Html-Kommentar: Dokumententyp 5 wird definiert -->
+
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>QuickQA Help</title>
+	</head>
+	
+	<body>
+	<h2>QuickQA Plugin &ndash; Short documentation</h2>
+	<p>The purpose of the plugin is to support quality assurance, performance and transparency.&nbsp;</p>
+	<p>QuickQA consists of two main functionatities: Checking the coordinate reference systems (CRS) of layers against the project's CRS and detecting missing spatial indexes.</p>
+	<p><span style="color: #000000;">The source code of the QuickQA plugin is available on <a href="https://github.com/Arroonn/ProjektPlugin.git">GitHub</a>.</span></p>
+	
+	<p><strong>Context</strong></p>
+	<p style="margin-left: 0.49in;">CRS &ndash; Being consistent with CRS when processing spatial data has a potentially huge impact on performance and accuarcy of your results. Therefore it can be important to aline the CRS of layers loaded with the CRS of the project. <span style="color: #ff420e;">on the fly transformation</span></p>
+	<p style="margin-left: 0.49in;">Spatial Indexes &ndash; When processing data, especially large datasets, without spatial index is likely to have an impact on the time spent when running tools, etc. It is therefore beneficial for the perfomance of your workflow to check whether all layers have a spatial index and, where applicable, create one.</p>
+	<p>&nbsp;</p>
+	
+	<p><strong>Usage</strong></p>
+	<p>Find the plugin in the Toolbars section and activate it. The toolbar will appear as follows:</p>
+	
+	<img src="img\image1_toolbar.png" border="2">
+	<p>&nbsp;</p>
+	
+	<p>Let's start with checking CRS. There are three options available to determine which layers to select for checking. Clicking any of the buttons immediately triggers the search.</p>
+	
+	<img src="img\image3_dropdown.png" border="2">
+	<ol>
+	<li>
+	<p>Check CRS of all layers &ndash; Using this option means all layers loaded to the table of content (ToC) will be checked whether their CRS is the same as the one associated with the project.</p>
+	</li>
+	<li>
+	<p>Check CRS of active layers &ndash; Only the layers ticked to be active will be checked.</p>
+	</li>
+	<li>
+	<p>Check CRS of selected layers &ndash; Only the manually selected layers will be checked.</p>
+	</li>
+	</ol>
+	<p>If all CRS of the layers align with the project's CRS, a messagebar will temporarily appear at the top of the map canvas.</p>
+	<p><img src="img\image5_messagebar.PNG" border="2"></p>
+	<p>&nbsp;</p>
+	
+	<p><span style="color: #000000;">If one of more layer is found to misalign, a dialog will appear to list the result.</span></p>
+	
+	<p><img src="img\image4_Result_dialog.PNG" border="2"></p>
+	<p>&nbsp;</p>
+	
+	<p><span style="color: #000000;">The second main button in the toolbar serves the spatial index functionality.<br /></span></p>
+	<p><span style="color: #000000;"><strong>Important:</strong> Shapefile and Geopackage are currently the only two data providers supported. </span></p>
+	<p><span style="color: #000000;">All Shapefile and Geopackage layers in the project will be detected and checked whether a spatial index exists or not. If there is at least one layer found having no index, a dialog comes up listing the result and the option to create the index. If there are no shapefiles and geopackages without spatial index to be found, a message bar will temporarily appear at the top of the map canvas.</span></p>
+	<p>&nbsp;</p>
+	</body>
+</html>
