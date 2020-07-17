@@ -95,34 +95,24 @@ class QuickQA: #Diese Klasse ist das funktionale Kernstück des Plugins; enthäl
         layertree_root=QgsProject.instance().layerTreeRoot() #Returns pointer to the root (invisible) node of the project’s layer tree
 
         for layer_id, layer in layers.items():               #Compares CRS between layers and project
-            QgsMessageLog.logMessage("Layer "+layer.name()+" has been checked", 'CRS Check', level=Qgis.Info)
             if layer.crs().authid()!=project_crs: 
                 bad_crs_layer.append(layer.name())
-                #if layertree_root.findLayer(layer.id()).isVisible():
-                    #QgsMessageLog.logMessage("Layer "+layer.name()+" ist sichtbar", 'QuickQA', level=Qgis.Info)
 
-        # self.gui = WerkzeugDialog(self.iface.mainWindow())
-        # self.gui.list_results.addItems(bad_crs_layer)
-        # self.gui.show()
         self.showResult(bad_crs_layer, 'CRS')
         
     def runActive(self):
-        layers = QgsProject.instance().mapLayers()
+        layers = iface.mapCanvas().layers()
         project_crs = QgsProject.instance().crs().authid()
         bad_crs_layer=[]
         
         layertree_root=QgsProject.instance().layerTreeRoot()
 
         #for layer_id, layer in layers.items():
-        for layer in iface.mapCanvas().layers():
-            QgsMessageLog.logMessage("Layer "+layer.name()+" has been checked", 'CRS Check', level=Qgis.Info)
+        for layer in layers:
             if layertree_root.findLayer(layer.id()).isVisible():
                 if layer.crs().authid()!=project_crs:
                     bad_crs_layer.append(layer.name())
         
-        #self.gui = WerkzeugDialog(self.iface.mainWindow())
-        # self.gui.list_results.addItems(bad_crs_layer)
-        # self.gui.show()
         self.showResult(bad_crs_layer, 'CRS')
         
     def runSelected(self):
@@ -134,7 +124,6 @@ class QuickQA: #Diese Klasse ist das funktionale Kernstück des Plugins; enthäl
 
         #for layer_id, layer in layers.items():
         for layer in layers:
-            QgsMessageLog.logMessage("Layer "+layer.name()+" has been checked", 'CRS Check', level=Qgis.Info)
             if layer.crs().authid()!=project_crs:
                 bad_crs_layer.append(layer.name())
 
@@ -144,18 +133,11 @@ class QuickQA: #Diese Klasse ist das funktionale Kernstück des Plugins; enthäl
         layers = QgsProject.instance().mapLayers()
         self.missingSIndex = []
         for layer_id, layer in layers.items():
-            QgsMessageLog.logMessage("Layer "+layer.name()+" has been checked", 'QuickQA', level=Qgis.Info)
-            #print(layer.name())
             if layer.type() == QgsMapLayer.VectorLayer:
                 if layer.hasSpatialIndex() == QgsFeatureSource.SpatialIndexNotPresent:
-                    QgsMessageLog.logMessage("Spatial Index not present", 'QuickQA', level=Qgis.Info)
-                    #print("not present")
-                    erzeugt=layer.dataProvider().createSpatialIndex()
-                    #print(erzeugt)
-                    QgsMessageLog.logMessage(erzeugt, 'QuickQA', level=Qgis.Info)
+                    QgsMessageLog.logMessage(layer.name()+" hat sicher keinen Spatial Index", 'QuickQA', level=Qgis.Info)
+                    # https://github.com/qgis/QGIS/pull/32877/files#diff-d97caa98f4dcf3876033911435216e7aR211
                 elif layer.hasSpatialIndex() == QgsFeatureSource.SpatialIndexUnknown:
-                    #print("unknown")
-                    
                     #ueberpruefung fuer gpkg und shapefiles:
                     myfile= unicode( layer.dataProvider().dataSourceUri() ) #Pfad der Datenquelle des Layers abgreifen
                     #Pfadordner und Dateiname trennen, um sich den Pfad zur Geopackage Datei oder zur QIX-Datei bilden zu können
@@ -194,11 +176,14 @@ class QuickQA: #Diese Klasse ist das funktionale Kernstück des Plugins; enthäl
                             #layer.dataProvider().createSpatialIndex()
 
                         cur.close()
+                        #Cursor sind Objekte, die es erlauben, die Datensätze aus einer Datenbank-Anfrage auszulesen. Sie zeigen (daher der Name) in der Regel auf einen der Datensätze, dessen Daten dann gelesen werden können.
+                        #https://www.inf-schule.de/information/datenbanksysteme/zugriff/pythonzugriff/konzept_cursor
                         con.close()
                     #Test fuer Shapefiles
                     elif ".shp" in myfile:
                         (myDirectory,nameFile) = os.path.split(myfile)
-                        layername_w_o_extension=os.path.splitext(nameFile.split('|')[0])[0]  #layername ohne extension
+                        layername_w_o_extension=os.path.splitext(nameFile.split('|')[0])[0]  #layername ohne extension   bsp layer1.shp | layer1
+                        ['layer1' ,'shp']
                         qix_path=os.path.join(myDirectory,layername_w_o_extension+'.qix') #pfad zur qix Datei bauen ...imselben ordner wie die shapedatei
                         if os.path.isfile ( qix_path):   #ueberpruefen ob die qix datei existiert
                             QgsMessageLog.logMessage("Shapefile "+layer.name()+" hat eine qix-Datei.\n"+
@@ -222,9 +207,7 @@ class QuickQA: #Diese Klasse ist das funktionale Kernstück des Plugins; enthäl
         sanitize_button.hide() #beim thema crs den sanitize button ausblenden
         if mode == 'CRS':
             if len(result_layer)<1:
-                self.showMessage('Alle betreffenden Layer stimmen mit dem Koordinatensystem des Projekts überein.', Qgis.Success)
-                self.logMessage('Alle betreffenden Layer stimmen mit dem Koordinatensystem des Projekts überein.')
-                #sichtbar im Protokoll widget im Reiter QuickQA
+                self.showMessage('All layers checked align with the CRS of the project.', Qgis.Success)
             else:
                 self.gui.label.setText("The layer(s) listed have a different coordinate\n reference system than the project:")
                 self.gui.label_2.setText("Reproject or export the layer using the project's\ncoordinate reference system.")
@@ -234,9 +217,8 @@ class QuickQA: #Diese Klasse ist das funktionale Kernstück des Plugins; enthäl
                 
         elif mode == 'MissingSIndex':
             if len(result_layer)<1:
-                self.showMessage('Alle betreffenden Layer haben einen Spatial Index.', Qgis.Success)
-                #self.logMessage('Alle betreffenden Layer haben einen Spatial Index.')
-                #sichtbar im Protokoll widget im Reiter QuickQA
+                self.showMessage('All layers have a spatial index.', Qgis.Success)
+
             else:
                 self.gui.label.setText("The layer(s) listed don't have a spatial index:")
                 self.gui.label_2.setText("Important: Shapefile and Geopackage are \ncurrently the only two data providers supported.")
@@ -274,12 +256,9 @@ class QuickQA: #Diese Klasse ist das funktionale Kernstück des Plugins; enthäl
             if shortmessage is not None:
                 target.bar.pushMessage("Info", shortmessage, level=level)
             self.iface.messageBar().pushMessage(message, level, self.iface.messageTimeout())
-
-
-    def logMessage(self, message, level=Qgis.Info): #enables the display of messages in log section
-        QgsMessageLog.logMessage(message, 'QuickQA', level) #creates log tab in console
-
+            
 
     def runHelp(self):
         showPluginHelp(packageName=None, filename='index', section='')
+
 
