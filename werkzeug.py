@@ -2,20 +2,19 @@
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import os
-from qgis.utils import iface, showPluginHelp
-import processing
+from qgis.utils import iface, showPluginHelp, spatialite_connect
 from qgis.core import Qgis, QgsProject, QgsMapLayer, QgsFeatureSource, QgsMessageLog
-
-from qgis.utils import spatialite_connect
 from .werkzeug_dialog import WerkzeugDialog #Wir holen uns die Klasse WerkzeugDialog aus der werkzeug_dialog.py.
+
+import os
+import processing
 
 class QuickQA: #Diese Klasse ist das funktionale Kernstück des Plugins; enthält Methoden.
 
     def __init__(self, iface):  #Das iface soll eine Eigenschaft des Plugins werden.
         self.iface = iface
 
-    def initGui(self):  # Method to set up GUI, i.e. buttons and their actions, toolbar, dropdown, buttons in Pluginmenu, etc. 
+    def initGui(self):  # Method to set up toolbar, i.e. buttons, actions, dropdown, Pluginmenu, etc. 
         
         self.plugin_dir = os.path.dirname(__file__)  #Dynamischer Pfad zum Plugin-Directory, in dem die werkzeug.py liegt.
         
@@ -133,72 +132,49 @@ class QuickQA: #Diese Klasse ist das funktionale Kernstück des Plugins; enthäl
         layers = QgsProject.instance().mapLayers()
         self.missingSIndex = []
         for layer_id, layer in layers.items():
-            if layer.type() == QgsMapLayer.VectorLayer:
+            if layer.type() == QgsMapLayer.VectorLayer: #checks whether vector layer or not - excludes raster
                 if layer.hasSpatialIndex() == QgsFeatureSource.SpatialIndexNotPresent:
-                    QgsMessageLog.logMessage(layer.name()+" hat sicher keinen Spatial Index", 'QuickQA', level=Qgis.Info)
-                    # https://github.com/qgis/QGIS/pull/32877/files#diff-d97caa98f4dcf3876033911435216e7aR211
+                    QgsMessageLog.logMessage(layer.name()+" hat sicher keinen Spatial Index. Data format could be geojson or csv", 'QuickQA', level=Qgis.Info)
                 elif layer.hasSpatialIndex() == QgsFeatureSource.SpatialIndexUnknown:
-                    #ueberpruefung fuer gpkg und shapefiles:
+                    #checks for gpkg and shp
                     myfile= unicode( layer.dataProvider().dataSourceUri() ) #Pfad der Datenquelle des Layers abgreifen
                     #Pfadordner und Dateiname trennen, um sich den Pfad zur Geopackage Datei oder zur QIX-Datei bilden zu können
                     (myDirectory,nameFile) = os.path.split(myfile)
-                    #print(myfile)
                     layersource_absolute_path=myfile.split('|')[0] #absoluter pfad ohne layernamen
-                    #Test fuer geopackages
+                    #Test fuer Geopackages
                     if ".gpkg" in myfile:
                         con = spatialite_connect(layersource_absolute_path)
                         tablename=nameFile.split('|')[1]
-                        QgsMessageLog.logMessage(tablename, 'QuickQA', level=Qgis.Info)
-                        #print(tablename)
-                        #Now, you can create a new point layer in your database in this way (see the docs):
 
                         cur = con.cursor()
-                        # Run next line if your DB was just created, it may take a while...
                         gpkg_tablename=tablename.split('=')[1] #tabellennamen isolieren
                         sql_string="SELECT EXISTS(SELECT name FROM sqlite_master WHERE type='table' and name like 'rtree_"+gpkg_tablename+"_%')" 
-                        #sql_string="select ST_AsText(geometry) from "+gpkg_tablename+";" 
-                        
-                        QgsMessageLog.logMessage(sql_string, 'QuickQA', level=Qgis.Info)
-                        #print(sql_string)
 
                         cur.execute(sql_string) #sql ausfuehren
                         result = cur.fetchone() #erstes ergebnis holen
                         #result = cur.fetchall() #alle ergebnisse holen
-                        #QgsMessageLog.logMessage(result, 'QuickQA', level=Qgis.Info)
-                        print(result)
                         if result[0]==1:
-                            QgsMessageLog.logMessage(layer.name()+" has a spatial index", 'QuickQA', level=Qgis.Info)
-                            #print(layer.name()+" hat einen spatial index")
+                            QgsMessageLog.logMessage("Geopackage "+layer.name()+" has a spatial index", 'QuickQA', level=Qgis.Info)
                         else:
-                            QgsMessageLog.logMessage(layer.name()+" has NO spatial index", 'QuickQA', level=Qgis.Info)
-                            #print(layer.name()+" hat keinen spatial index")
+                            QgsMessageLog.logMessage("Geopackage "+layer.name()+" has NO spatial index", 'QuickQA', level=Qgis.Info)
                             self.missingSIndex.append(layer)
-                            #layer.dataProvider().createSpatialIndex()
 
-                        cur.close()
-                        #Cursor sind Objekte, die es erlauben, die Datensätze aus einer Datenbank-Anfrage auszulesen. Sie zeigen (daher der Name) in der Regel auf einen der Datensätze, dessen Daten dann gelesen werden können.
-                        #https://www.inf-schule.de/information/datenbanksysteme/zugriff/pythonzugriff/konzept_cursor
+                        cur.close() # see link in notes doc
                         con.close()
                     #Test fuer Shapefiles
                     elif ".shp" in myfile:
                         (myDirectory,nameFile) = os.path.split(myfile)
-                        layername_w_o_extension=os.path.splitext(nameFile.split('|')[0])[0]  #layername ohne extension   bsp layer1.shp | layer1
-                        ['layer1' ,'shp']
+                        layername_w_o_extension=os.path.splitext(nameFile.split('|')[0])[0]  #layername ohne extension, Bsp layer1.shp | layer1 ['layer1' ,'shp']
                         qix_path=os.path.join(myDirectory,layername_w_o_extension+'.qix') #pfad zur qix Datei bauen ...imselben ordner wie die shapedatei
-                        if os.path.isfile ( qix_path):   #ueberpruefen ob die qix datei existiert
-                            QgsMessageLog.logMessage("Shapefile "+layer.name()+" hat eine qix-Datei.\n"+
-                            "Die liegt hier: \n"+qix_path, 'QuickQA', level=Qgis.Info)
-                            #print("Shapefile "+layer.name()+" hat eine qix-Datei.\n" + "Die liegt hier: \n"+qix_path)
+                        if os.path.isfile (qix_path):   #ueberpruefen ob die qix datei existiert
+                            QgsMessageLog.logMessage("Shapefile "+layer.name()+" has a spatial index (.qix exists).", 'QuickQA', level=Qgis.Info)
                         else:
                             self.missingSIndex.append(layer)
                         
-
                 elif layer.hasSpatialIndex() == QgsFeatureSource.SpatialIndexPresent:
                     QgsMessageLog.logMessage("present", 'QuickQA', level=Qgis.Info)
-                    #print ("present")
                 else:
                     QgsMessageLog.logMessage("something else", 'QuickQA', level=Qgis.Info)
-                    #print ("something else")
         self.showResult(self.missingSIndex, 'MissingSIndex')
 
 
@@ -223,25 +199,23 @@ class QuickQA: #Diese Klasse ist das funktionale Kernstück des Plugins; enthäl
                 self.gui.label.setText("The layer(s) listed don't have a spatial index:")
                 self.gui.label_2.setText("Important: Shapefile and Geopackage are \ncurrently the only two data providers supported.")
                 self.list_results.clear()
-                result_layer_names =[] #leeres array fuer die layernamen weil hier wirklich die layer als objekte in der liste stehen
-                for layer in result_layer:  #for loop
+                result_layer_names =[] #Empty list containing layer names, weil hier wirklich die layer als objekte in der liste stehen
+                for layer in result_layer:
                     result_layer_names.append(layer.name()) # fuer jeden layer seinen namen hinzufuegen fuer die liste im dialog
                 self.list_results.addItems(result_layer_names)
                 
                 sanitize_button.show()
                 
                 self.gui.show()
-    
-    #sanitize Funktion ausgelagert. wuerde ich nur fuer die Indizes anbieten. Layer reprojezzieren per batch ist kniffelig
+
     def sanitize(self,layer):
         for layer in self.missingSIndex:
             layer.dataProvider().createSpatialIndex()
-        self.showMessage('Spatial Index erzeugt', Qgis.Success)
+        self.showMessage('Spatial Index successfully created', Qgis.Success)
         self.gui.close()
             
                 
-    def showMessage(self, message, level=Qgis.Info, target=None, shortmessage=None):
-        #enables the displaying of the message bar
+    def showMessage(self, message, level=Qgis.Info, target=None, shortmessage=None): #enables the displaying of the message bar
         """
         
         :param message:
@@ -260,5 +234,4 @@ class QuickQA: #Diese Klasse ist das funktionale Kernstück des Plugins; enthäl
 
     def runHelp(self):
         showPluginHelp(packageName=None, filename='index', section='')
-
 
